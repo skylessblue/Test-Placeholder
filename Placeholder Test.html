@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CDA | TB Screening Tool</title>
+    <style>
+        :root { --brand: #4f46e5; --bg: #f3f4f6; --success: #166534; --dark: #1e293b; --slate: #64748b; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; }
+        #app { background: white; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); width: 100%; max-width: 500px; overflow: hidden; position: relative; }
+        .header-logo-container { width: 100%; background: white; padding: 20px 0; display: flex; justify-content: center; border-bottom: 1px solid #f1f5f9; }
+        .agency-logo { width: 220px; height: auto; }
+        .image-container { width: 100%; height: 240px; background: #e2e8f0; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        #location-banner { width: 100%; height: 100%; object-fit: cover; }
+        .content-padding { padding: 1.5rem; position: relative; }
+        .option-btn { display: block; width: 100%; padding: 14px; margin: 10px 0; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; text-align: left; background: white; font-size: 1rem; transition: all 0.2s; box-sizing: border-box; font-weight: 500; }
+        .option-btn:hover { background: #f8fafc; border-color: var(--brand); color: var(--brand); }
+        .hidden { display: none; }
+        .progress-tag { display: inline-block; padding: 4px 12px; background: #eef2ff; color: var(--brand); border-radius: 20px; font-size: 0.8rem; font-weight: 600; margin-bottom: 1rem; }
+        #capture-zone { background: white; position: relative; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; background: white; }
+        th, td { border: 1px solid #e2e8f0; padding: 10px; text-align: left; font-size: 0.9rem; }
+        th { background: #f8fafc; color: var(--slate); }
+        .total-row { font-weight: bold; background: #f1f5f9; }
+        .result-banner { padding: 20px; border-radius: 8px; margin-bottom: 15px; text-align: center; border: 2px solid transparent; }
+        .eligible { background: #dcfce7; color: var(--success); border-color: var(--success); }
+        .not-eligible { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
+        .instruction-text { font-size: 0.95rem; line-height: 1.6; margin-bottom: 15px; text-align: left; }
+        .exclusion-note { font-size: 0.85rem; font-weight: bold; margin-top: 10px; color: #b91c1c; }
+        .important-note { color: var(--dark); font-weight: 700; text-decoration: underline; }
+        .timestamp { font-size: 0.75rem; color: var(--slate); margin-top: 15px; text-align: center; font-style: italic; border-top: 1px solid #f1f5f9; padding-top: 10px; }
+        .disclaimer { font-size: 0.7rem; color: #94a3b8; margin-top: 10px; line-height: 1.4; text-align: justify; }
+        .action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; padding: 0 1.5rem 1.5rem 1.5rem; }
+        .dl-btn { background: var(--brand) !important; color: white !important; border: none !important; text-align: center !important; font-weight: 600 !important; }
+        .restart-btn { background: var(--dark) !important; color: white !important; text-align: center !important; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div id="capture-zone">
+        <div class="header-logo-container">
+            <img src="CDA Logo.jpg.avif" alt="CDA Logo" class="agency-logo">
+        </div>
+
+        <div class="image-container" id="img-wrapper">
+            <img id="location-banner" src="" alt="Location Visual">
+        </div>
+
+        <div class="content-padding">
+            <div id="quiz-ui">
+                <span class="progress-tag" id="area-tag">Loading...</span>
+                <h2 id="question-text" style="font-size: 1.25rem; margin-top: 0; line-height: 1.3;">Loading...</h2>
+                <div id="options-container"></div>
+            </div>
+
+            <div id="result-ui" class="hidden">
+                <div id="status-banner" class="result-banner">
+                    <h2 id="result-title" style="margin: 0 0 10px 0;"></h2>
+                    <div id="result-instruction" class="instruction-text"></div>
+                </div>
+                <h3 style="font-size: 1rem; margin-bottom: 8px;">Exposure Summary</h3>
+                <table id="summary-table">
+                    <thead><tr><th>Location</th><th>Exposure Score</th></tr></thead>
+                    <tbody id="table-body"></tbody>
+                </table>
+                <p id="date-stamp" class="timestamp"></p>
+                <div class="disclaimer">
+                    <strong>Disclaimer:</strong> This preliminary assessment is provided by the Communicable Diseases Agency Singapore for current screening operations purposes only.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="post-quiz-actions" class="hidden">
+        <div class="action-buttons">
+            <button onclick="downloadAsImage()" class="option-btn dl-btn">Download Result</button>
+            <button onclick="location.reload()" class="option-btn restart-btn">Restart</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+    const startDate = "XX Month 2026"; 
+    const endDate = "XX Month 2026";
+    const hours = "9AM to 6PM";
+    
+    // UPDATED with exact file names from your uploads
+    const locations = [
+        { name: "Area A", img: "Placeholder A.avif" },
+        { name: "Area B", img: "Placeholder B.avif" }, 
+        { name: "Area C", img: "Placeholder C.jpg" } 
+    ];
+    
+    const timeframes = ["weekly", "monthly", "in 2025"];
+    let currentLocIndex = 0;
+    let currentTimeIndex = 0;
+    let scoresByLocation = [0, 0, 0];
+
+    const baseOptions = [
+        { text: "Less than 1hr", value: 1 },
+        { text: "About 1-2hrs", value: 2 },
+        { text: "About 2-3hrs", value: 3 },
+        { text: "More than 4hrs", value: 4 }
+    ];
+
+    function updateUI() {
+        const currentLoc = locations[currentLocIndex];
+        const currentTime = timeframes[currentTimeIndex];
+        const banner = document.getElementById('location-banner');
+
+        document.getElementById('area-tag').innerText = currentLoc.name;
+        document.getElementById('question-text').innerText = `How many hours do you spend in ${currentLoc.name} ${currentTime}?`;
+        banner.src = currentLoc.img;
+
+        const container = document.getElementById('options-container');
+        container.innerHTML = '';
+        baseOptions.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt.text;
+            btn.onclick = () => handleSelection(opt.value);
+            container.appendChild(btn);
+        });
+
+        let nilLabel = (currentTime === "weekly") ? "I do not go weekly" : 
+                       (currentTime === "monthly") ? "I do not go monthly" : "I did not go in 2025";
+
+        const nilBtn = document.createElement('button');
+        nilBtn.className = 'option-btn';
+        nilBtn.innerText = nilLabel;
+        nilBtn.onclick = () => handleSelection(0);
+        container.appendChild(nilBtn);
+    }
+
+    function handleSelection(value) {
+        if (value === 0) {
+            currentTimeIndex++;
+            if (currentTimeIndex >= timeframes.length) {
+                scoresByLocation[currentLocIndex] = 0;
+                moveToNextLocation();
+            } else { updateUI(); }
+        } else {
+            let finalValue = (timeframes[currentTimeIndex] === "weekly") ? (value * 4) : value;
+            scoresByLocation[currentLocIndex] = finalValue;
+            moveToNextLocation();
+        }
+    }
+
+    function moveToNextLocation() {
+        currentLocIndex++;
+        currentTimeIndex = 0; 
+        if (currentLocIndex < locations.length) { updateUI(); } 
+        else { showFinalResult(); }
+    }
+
+    function showFinalResult() {
+        document.getElementById('img-wrapper').style.display = 'none';
+        document.getElementById('quiz-ui').classList.add('hidden');
+        document.getElementById('result-ui').classList.remove('hidden');
+        document.getElementById('post-quiz-actions').classList.remove('hidden');
+        
+        const totalScore = scoresByLocation.reduce((a, b) => a + b, 0);
+        const tableBody = document.getElementById('table-body');
+        const banner = document.getElementById('status-banner');
+        const instruction = document.getElementById('result-instruction');
+        
+        tableBody.innerHTML = locations.map((loc, i) => `<tr><td>${loc.name}</td><td>${scoresByLocation[i]}</td></tr>`).join('');
+        tableBody.innerHTML += `<tr class="total-row"><td>Total Combined Score</td><td>${totalScore}</td></tr>`;
+
+        const now = new Date();
+        document.getElementById('date-stamp').innerText = `Assessment Generated: ${now.toLocaleDateString()} at ${now.toLocaleTimeString()}`;
+
+        if (totalScore >= 8) {
+            banner.className = 'result-banner eligible';
+            document.getElementById('result-title').innerText = "Eligible for Screening";
+            instruction.innerHTML = `
+                CDA will be deploying latent TB screening stations at <strong>Area C</strong>. 
+                Please head down to the stations between <strong>${startDate} to ${endDate}</strong> (${hours}) to receive a free latent TB screening. 
+                <br><br><span class="important-note">Please bring your NRIC to register for screening at the screening booths.</span>
+                <br><br>Further information on TB will also be available there.
+                <div class="exclusion-note">Please note that Persons with history of TB or LTBI treatment records in Singapore will not be eligible for latent TB screening.</div>
+            `;
+        } else {
+            banner.className = 'result-banner not-eligible';
+            document.getElementById('result-title').innerText = "Not Eligible for Screening";
+            instruction.innerHTML = `
+                Your exposure hours show that you are of lower risk for the screening operations. 
+                Further information on TB will be available at <strong>Area C</strong> between <strong>${startDate} to ${endDate}</strong> (${hours}).
+            `;
+        }
+    }
+
+    function downloadAsImage() {
+        const captureElement = document.getElementById('capture-zone');
+        html2canvas(captureElement, { backgroundColor: "#ffffff", scale: 2, useCORS: true }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = `CDA_Assessment_Result.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+        });
+    }
+
+    updateUI();
+</script>
+</body>
+</html>
